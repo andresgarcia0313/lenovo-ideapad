@@ -30,14 +30,16 @@ modules:
   - name: thermal-monitor
     buildsystem: simple
     build-commands:
-      - cargo --offline build --release --verbose
-      - install -Dm755 target/release/thermal-monitor /app/bin/thermal-monitor
-      - install -Dm644 flatpak/com.github.andresgarcia0313.ThermalMonitor.desktop /app/share/applications/com.github.andresgarcia0313.ThermalMonitor.desktop
-      - install -Dm644 flatpak/com.github.andresgarcia0313.ThermalMonitor.metainfo.xml /app/share/metainfo/com.github.andresgarcia0313.ThermalMonitor.metainfo.xml
-      - install -Dm644 flatpak/com.github.andresgarcia0313.ThermalMonitor.svg /app/share/icons/hicolor/scalable/apps/com.github.andresgarcia0313.ThermalMonitor.svg
+      - cd thermal-monitor-gui && cargo --offline build --release --verbose
+      - install -Dm755 thermal-monitor-gui/target/release/thermal-monitor /app/bin/thermal-monitor
+      - install -Dm644 thermal-monitor-gui/flatpak/com.github.andresgarcia0313.ThermalMonitor.desktop /app/share/applications/com.github.andresgarcia0313.ThermalMonitor.desktop
+      - install -Dm644 thermal-monitor-gui/flatpak/com.github.andresgarcia0313.ThermalMonitor.metainfo.xml /app/share/metainfo/com.github.andresgarcia0313.ThermalMonitor.metainfo.xml
+      - install -Dm644 thermal-monitor-gui/flatpak/com.github.andresgarcia0313.ThermalMonitor.svg /app/share/icons/hicolor/scalable/apps/com.github.andresgarcia0313.ThermalMonitor.svg
     sources:
       - type: git
-        url: https://github.com/andresgarcia0313/thermal-monitor-gui.git
-        tag: v1.3.0
-        # commit: <COMMIT_SHA>  # Add after publishing to GitHub
-      - cargo-sources.json
+        url: https://github.com/andresgarcia0313/lenovo-ideapad.git
+        tag: v1.3.1
+        commit: 98c2b6fe34b3bd4060beb6eb85f2e84b7be05837
+      - type: file
+        path: cargo-sources.json
+        dest: thermal-monitor-gui
