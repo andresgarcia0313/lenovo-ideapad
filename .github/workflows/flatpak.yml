@@ -39,6 +39,8 @@ jobs:
     needs: flatpak
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
       - name: Download Flatpak artifact
