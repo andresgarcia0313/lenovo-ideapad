@@ -170,221 +170,162 @@ impl ThermalApp {
         }
     }
 
-    /// Render temperature gauge
-    fn render_gauge(&self, ui: &mut egui::Ui, label: &str, temp: f32, zone: ThermalZone) {
-        let color = Self::zone_color(zone);
 
-        ui.vertical(|ui| {
-            ui.label(egui::RichText::new(label).size(12.0).color(egui::Color32::GRAY));
-            ui.label(
-                egui::RichText::new(format!("{:.1}°C", temp))
-                    .size(28.0)
-                    .color(color)
-                    .strong(),
-            );
-            ui.label(
-                egui::RichText::new(zone.label())
-                    .size(10.0)
-                    .color(color),
-            );
-        });
-    }
-
-    /// Render main temperature panel
-    fn render_temperatures(&self, ui: &mut egui::Ui) {
+    /// Render temperatures - adaptive version
+    fn render_temperatures_adaptive(&self, ui: &mut egui::Ui, is_medium: bool) {
         let zone = self.state.thermal_zone();
+        let color = Self::zone_color(zone);
+        let font_size = if is_medium { 24.0 } else { 18.0 };
+        let label_size = if is_medium { 11.0 } else { 9.0 };
 
-        ui.horizontal(|ui| {
-            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                self.render_gauge(ui, "CPU", self.state.cpu_temp, zone);
-                ui.add_space(40.0);
-                self.render_gauge(ui, "KEYBOARD (est.)", self.state.keyboard_temp, zone);
-                ui.add_space(40.0);
-                self.render_gauge(ui, "AMBIENT", self.state.ambient_temp, ThermalZone::Cool);
+        ui.horizontal_wrapped(|ui| {
+            // CPU
+            ui.vertical(|ui| {
+                ui.label(egui::RichText::new("CPU").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(format!("{:.0}°", self.state.cpu_temp))
+                    .size(font_size).color(color).strong());
+            });
+            ui.add_space(10.0);
+            // Keyboard
+            ui.vertical(|ui| {
+                ui.label(egui::RichText::new("KBD").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(format!("{:.0}°", self.state.keyboard_temp))
+                    .size(font_size).color(color).strong());
+            });
+            ui.add_space(10.0);
+            // Zone label
+            ui.vertical(|ui| {
+                ui.label(egui::RichText::new("Zone").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(zone.label()).size(label_size + 2.0).color(color));
             });
         });
     }
 
-    /// Render performance info
-    fn render_performance(&self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            // Performance percentage
+    /// Render performance - adaptive version
+    fn render_performance_adaptive(&self, ui: &mut egui::Ui, is_medium: bool) {
+        let font_size = if is_medium { 20.0 } else { 16.0 };
+        let label_size = if is_medium { 11.0 } else { 9.0 };
+        let mode_color = Self::mode_color(self.state.mode);
+
+        ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("PERFORMANCE").size(10.0).color(egui::Color32::GRAY));
-                ui.label(
-                    egui::RichText::new(format!("{}%", self.state.perf_pct))
-                        .size(24.0)
-                        .strong(),
-                );
+                ui.label(egui::RichText::new("Perf").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(format!("{}%", self.state.perf_pct))
+                    .size(font_size).strong());
             });
-
-            ui.add_space(30.0);
-
-            // Current frequency
+            ui.add_space(10.0);
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("FREQUENCY").size(10.0).color(egui::Color32::GRAY));
-                ui.label(
-                    egui::RichText::new(format!("{:.2} GHz", self.state.current_freq_ghz()))
-                        .size(24.0)
-                        .strong(),
-                );
+                ui.label(egui::RichText::new("Freq").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(format!("{:.1}G", self.state.current_freq_ghz()))
+                    .size(font_size).strong());
             });
-
-            ui.add_space(30.0);
-
-            // Current mode
-            let mode_color = Self::mode_color(self.state.mode);
+            ui.add_space(10.0);
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("MODE").size(10.0).color(egui::Color32::GRAY));
-                ui.label(
-                    egui::RichText::new(self.state.mode.label())
-                        .size(24.0)
-                        .color(mode_color)
-                        .strong(),
-                );
-                ui.label(
-                    egui::RichText::new(self.state.mode.description())
-                        .size(10.0)
-                        .color(egui::Color32::GRAY),
-                );
+                ui.label(egui::RichText::new("Mode").size(label_size).color(egui::Color32::GRAY));
+                ui.label(egui::RichText::new(self.state.mode.label())
+                    .size(label_size + 2.0).color(mode_color).strong());
             });
         });
     }
 
-    /// Render mode control buttons
-    fn render_controls(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+    /// Render controls - adaptive version with wrapping
+    fn render_controls_adaptive(&mut self, ui: &mut egui::Ui, available_width: f32) {
+        let button_width = if available_width > 600.0 { 90.0 } else { 70.0 };
+        let button_height = if available_width > 600.0 { 28.0 } else { 24.0 };
+        let font_size = if available_width > 600.0 { 11.0 } else { 9.0 };
+
+        ui.horizontal_wrapped(|ui| {
             for mode in Mode::all() {
                 let is_current = self.state.mode == *mode;
                 let color = Self::mode_color(*mode);
 
                 let button = egui::Button::new(
                     egui::RichText::new(mode.label())
-                        .size(14.0)
+                        .size(font_size)
                         .color(if is_current { egui::Color32::BLACK } else { color }),
                 )
                 .fill(if is_current { color } else { egui::Color32::TRANSPARENT })
                 .stroke(egui::Stroke::new(1.0, color))
-                .min_size(egui::vec2(120.0, 35.0));
+                .min_size(egui::vec2(button_width, button_height));
 
                 if ui.add(button).clicked() && !is_current {
                     self.change_mode(*mode);
                 }
-
-                ui.add_space(8.0);
             }
         });
     }
 
-    /// Render target temperature control
-    fn render_target_temp(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Target:").size(14.0));
-            ui.add_space(5.0);
+    /// Render target temperature - adaptive version
+    fn render_target_temp_adaptive(&mut self, ui: &mut egui::Ui, is_wide: bool) {
+        let slider_width = if is_wide { 120.0 } else { 80.0 };
+        let font_size = if is_wide { 11.0 } else { 9.0 };
 
+        ui.horizontal_wrapped(|ui| {
             let slider = egui::Slider::new(&mut self.target_temp, 40.0..=80.0)
-                .suffix("°C")
+                .suffix("°")
                 .step_by(1.0)
                 .text("");
-            ui.add_sized([150.0, 25.0], slider);
+            ui.add_sized([slider_width, 20.0], slider);
 
-            ui.add_space(10.0);
-
-            // Auto control checkbox
-            let auto_label = if self.auto_control { "Auto ON" } else { "Auto OFF" };
+            // Auto button
             let auto_color = if self.auto_control {
                 egui::Color32::from_rgb(100, 220, 100)
             } else {
                 egui::Color32::GRAY
             };
             if ui.add(egui::Button::new(
-                egui::RichText::new(auto_label).size(12.0).color(auto_color)
-            ).min_size(egui::vec2(80.0, 25.0))).clicked() {
+                egui::RichText::new(if self.auto_control { "AUTO" } else { "OFF" })
+                    .size(font_size).color(auto_color)
+            ).min_size(egui::vec2(40.0, 20.0))).clicked() {
                 self.auto_control = !self.auto_control;
-                if self.auto_control {
-                    self.set_status("Auto thermal control ENABLED".into());
-                } else {
-                    self.set_status("Auto thermal control DISABLED".into());
-                }
+                self.set_status(if self.auto_control { "Auto ON".into() } else { "Auto OFF".into() });
             }
 
-            ui.add_space(10.0);
-
-            // Status indicator
+            // Status
             if self.state.cpu_temp > self.target_temp {
-                ui.label(
-                    egui::RichText::new(format!("+{:.1}°C", self.state.cpu_temp - self.target_temp))
-                        .size(13.0)
-                        .color(egui::Color32::from_rgb(255, 150, 100)),
-                );
+                ui.label(egui::RichText::new(format!("+{:.0}°", self.state.cpu_temp - self.target_temp))
+                    .size(font_size).color(egui::Color32::from_rgb(255, 150, 100)));
             } else {
-                ui.label(
-                    egui::RichText::new("OK")
-                        .size(13.0)
-                        .color(egui::Color32::from_rgb(100, 220, 100)),
-                );
+                ui.label(egui::RichText::new("OK").size(font_size)
+                    .color(egui::Color32::from_rgb(100, 220, 100)));
             }
         });
     }
 
-    /// Render fan control
-    fn render_fan_control(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Fan:").size(14.0));
-            ui.add_space(10.0);
+    /// Render fan control - adaptive version
+    fn render_fan_control_adaptive(&mut self, ui: &mut egui::Ui, is_wide: bool) {
+        let font_size = if is_wide { 11.0 } else { 9.0 };
+        let fan_active = self.state.fan_boost || self.fan_boost_manual;
+        let fan_color = if fan_active {
+            egui::Color32::from_rgb(255, 150, 100)
+        } else {
+            egui::Color32::GRAY
+        };
 
-            // Fan boost button
-            let fan_label = if self.state.fan_boost || self.fan_boost_manual {
-                "BOOST ON"
-            } else {
-                "BOOST OFF"
-            };
-            let fan_color = if self.state.fan_boost || self.fan_boost_manual {
-                egui::Color32::from_rgb(255, 150, 100)
-            } else {
-                egui::Color32::GRAY
-            };
-
+        ui.horizontal_wrapped(|ui| {
             if ui.add(egui::Button::new(
-                egui::RichText::new(fan_label).size(14.0).color(
-                    if self.state.fan_boost || self.fan_boost_manual {
-                        egui::Color32::BLACK
-                    } else {
-                        fan_color
-                    }
-                )
+                egui::RichText::new(if fan_active { "BOOST" } else { "NORMAL" })
+                    .size(font_size)
+                    .color(if fan_active { egui::Color32::BLACK } else { fan_color })
             )
-            .fill(if self.state.fan_boost || self.fan_boost_manual {
-                fan_color
-            } else {
-                egui::Color32::TRANSPARENT
-            })
+            .fill(if fan_active { fan_color } else { egui::Color32::TRANSPARENT })
             .stroke(egui::Stroke::new(1.0, fan_color))
-            .min_size(egui::vec2(100.0, 30.0))).clicked() {
+            .min_size(egui::vec2(60.0, 20.0))).clicked() {
                 self.fan_boost_manual = !self.fan_boost_manual;
-                if let Err(e) = set_fan_boost(self.fan_boost_manual) {
-                    self.set_status(format!("Fan error: {}", e));
-                } else {
-                    self.set_status(if self.fan_boost_manual {
-                        "Fan BOOST activated".into()
-                    } else {
-                        "Fan returned to AUTO".into()
-                    });
-                }
+                let _ = set_fan_boost(self.fan_boost_manual);
+                self.set_status(if self.fan_boost_manual { "Fan boost".into() } else { "Fan auto".into() });
             }
 
-            ui.add_space(20.0);
-            ui.label(
-                egui::RichText::new("Manual fan boost for rapid cooling")
-                    .size(11.0)
-                    .color(egui::Color32::GRAY),
-            );
+            if is_wide {
+                ui.label(egui::RichText::new("Max cooling").size(9.0).color(egui::Color32::DARK_GRAY));
+            }
         });
     }
 
-    /// Render temperature history graph
-    fn render_history(&self, ui: &mut egui::Ui, target_temp: f32) {
+    /// Render history graph - adaptive version
+    fn render_history_adaptive(&self, ui: &mut egui::Ui, target_temp: f32, height: f32) {
         if self.history.is_empty() {
+            ui.label("Collecting data...");
             return;
         }
 
@@ -394,22 +335,21 @@ impl ThermalApp {
             .width(2.0);
 
         let kbd_line = Line::new(self.history.kbd_points())
-            .name("Keyboard")
+            .name("Kbd")
             .color(egui::Color32::from_rgb(100, 200, 255))
             .width(2.0);
 
-        // Target temperature line
         let target_points: Vec<[f64; 2]> = (0..HISTORY_CAPACITY)
             .map(|i| [i as f64, target_temp as f64])
             .collect();
         let target_line = Line::new(PlotPoints::new(target_points))
             .name("Target")
             .color(egui::Color32::from_rgb(255, 200, 100))
-            .width(1.5)
+            .width(1.0)
             .style(egui_plot::LineStyle::dashed_loose());
 
         Plot::new("temp_history")
-            .height(200.0)
+            .height(height)
             .show_axes(true)
             .show_grid(true)
             .include_y(30.0)
@@ -417,7 +357,7 @@ impl ThermalApp {
             .allow_zoom(false)
             .allow_drag(false)
             .allow_scroll(false)
-            .legend(egui_plot::Legend::default())
+            .legend(egui_plot::Legend::default().position(egui_plot::Corner::RightTop))
             .show(ui, |plot_ui| {
                 plot_ui.line(cpu_line);
                 plot_ui.line(kbd_line);
@@ -439,7 +379,7 @@ impl ThermalApp {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.label(
-                    egui::RichText::new("Thermal Monitor v1.2.0")
+                    egui::RichText::new("Thermal Monitor v1.3.0")
                         .size(11.0)
                         .color(egui::Color32::DARK_GRAY),
                 );
@@ -463,85 +403,98 @@ impl eframe::App for ThermalApp {
         ctx.set_visuals(egui::Visuals::dark());
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(12.0, 8.0);
+            // Get available width to determine layout
+            let available_width = ui.available_width();
+            let is_wide = available_width > 700.0;
+            let is_medium = available_width > 500.0;
 
-            // Title
-            ui.horizontal(|ui| {
-                ui.heading(egui::RichText::new("Thermal Monitor").size(24.0));
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label(
-                        egui::RichText::new(format!("Profile: {}", self.state.platform_profile))
-                            .size(12.0)
-                            .color(egui::Color32::GRAY),
-                    );
+            // Adaptive spacing
+            let spacing = if is_wide { 8.0 } else { 4.0 };
+            ui.spacing_mut().item_spacing = egui::vec2(spacing, spacing);
+
+            // Use ScrollArea for small windows
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                // Title - adaptive size
+                let title_size = if is_wide { 22.0 } else if is_medium { 18.0 } else { 16.0 };
+                ui.horizontal(|ui| {
+                    ui.heading(egui::RichText::new("Thermal Monitor").size(title_size));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label(
+                            egui::RichText::new(format!("{}", self.state.platform_profile))
+                                .size(if is_wide { 12.0 } else { 10.0 })
+                                .color(egui::Color32::GRAY),
+                        );
+                    });
                 });
-            });
-            ui.separator();
-            ui.add_space(5.0);
+                ui.separator();
 
-            // Top row: Temperatures and Performance side by side
-            ui.horizontal(|ui| {
-                // Left: Temperatures
+                // Temperatures and Performance - side by side on wide, stacked on narrow
+                if is_wide {
+                    ui.horizontal(|ui| {
+                        let half_width = (available_width - 20.0) / 2.0;
+                        ui.group(|ui| {
+                            ui.set_width(half_width);
+                            ui.label(egui::RichText::new("Temperatures").size(13.0).strong());
+                            self.render_temperatures_adaptive(ui, is_medium);
+                        });
+                        ui.group(|ui| {
+                            ui.set_width(half_width);
+                            ui.label(egui::RichText::new("Performance").size(13.0).strong());
+                            self.render_performance_adaptive(ui, is_medium);
+                        });
+                    });
+                } else {
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("Temperatures").size(13.0).strong());
+                        self.render_temperatures_adaptive(ui, is_medium);
+                    });
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("Performance").size(13.0).strong());
+                        self.render_performance_adaptive(ui, is_medium);
+                    });
+                }
+
+                // Mode Control - wrapping buttons
                 ui.group(|ui| {
-                    ui.set_min_width(380.0);
-                    ui.label(egui::RichText::new("Temperatures").size(14.0).strong());
-                    ui.add_space(5.0);
-                    self.render_temperatures(ui);
+                    ui.label(egui::RichText::new("Mode Control").size(13.0).strong());
+                    self.render_controls_adaptive(ui, available_width);
                 });
 
-                ui.add_space(10.0);
+                // Target and Fan - side by side on wide, stacked on narrow
+                if is_medium {
+                    ui.horizontal(|ui| {
+                        let half_width = (available_width - 20.0) / 2.0;
+                        ui.group(|ui| {
+                            ui.set_width(half_width);
+                            ui.label(egui::RichText::new("Target Temp").size(13.0).strong());
+                            self.render_target_temp_adaptive(ui, is_wide);
+                        });
+                        ui.group(|ui| {
+                            ui.set_width(half_width);
+                            ui.label(egui::RichText::new("Fan").size(13.0).strong());
+                            self.render_fan_control_adaptive(ui, is_wide);
+                        });
+                    });
+                } else {
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("Target Temp").size(13.0).strong());
+                        self.render_target_temp_adaptive(ui, is_wide);
+                    });
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("Fan").size(13.0).strong());
+                        self.render_fan_control_adaptive(ui, is_wide);
+                    });
+                }
 
-                // Right: Performance
+                // History graph - adaptive height
+                let target = self.target_temp;
+                let graph_height = if is_wide { 180.0 } else if is_medium { 120.0 } else { 80.0 };
                 ui.group(|ui| {
-                    ui.set_min_width(350.0);
-                    ui.label(egui::RichText::new("Performance").size(14.0).strong());
-                    ui.add_space(5.0);
-                    self.render_performance(ui);
-                });
-            });
-
-            ui.add_space(8.0);
-
-            // Controls row
-            ui.group(|ui| {
-                ui.label(egui::RichText::new("Mode Control").size(14.0).strong());
-                ui.add_space(5.0);
-                self.render_controls(ui);
-            });
-
-            ui.add_space(8.0);
-
-            // Target temperature and Fan control in same row
-            ui.horizontal(|ui| {
-                ui.group(|ui| {
-                    ui.set_min_width(400.0);
-                    ui.label(egui::RichText::new("Target Temperature").size(14.0).strong());
-                    ui.add_space(5.0);
-                    self.render_target_temp(ui);
+                    ui.label(egui::RichText::new("History").size(13.0).strong());
+                    self.render_history_adaptive(ui, target, graph_height);
                 });
 
-                ui.add_space(10.0);
-
-                ui.group(|ui| {
-                    ui.set_min_width(330.0);
-                    ui.label(egui::RichText::new("Fan Control").size(14.0).strong());
-                    ui.add_space(5.0);
-                    self.render_fan_control(ui);
-                });
-            });
-
-            ui.add_space(8.0);
-
-            // History graph
-            let target = self.target_temp;
-            ui.group(|ui| {
-                ui.label(egui::RichText::new("Temperature History (2 min)").size(14.0).strong());
-                ui.add_space(5.0);
-                self.render_history(ui, target);
-            });
-
-            // Status bar at bottom
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                // Status bar
                 self.render_status(ui);
             });
         });
