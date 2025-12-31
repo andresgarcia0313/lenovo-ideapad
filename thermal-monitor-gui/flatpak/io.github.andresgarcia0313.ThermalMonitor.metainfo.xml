@@ -48,6 +48,16 @@
   </provides>
 
   <releases>
+    <release version="1.3.4" date="2025-12-31">
+      <description>
+        <p>Localized UI and Flatpak improvements</p>
+        <ul>
+          <li>Localized description in 5 languages (en, es, zh, pt, de)</li>
+          <li>Flatpak publishing documentation added</li>
+          <li>Screenshot added for Flathub</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.3.0" date="2025-12-30">
       <description>
         <p>Responsive UI that adapts to any window size</p>
