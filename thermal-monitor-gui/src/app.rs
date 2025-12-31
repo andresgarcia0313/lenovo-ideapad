@@ -16,6 +16,26 @@ const UPDATE_INTERVAL_SECS: f32 = 2.0;
 /// History capacity (2 minutes at 2-second intervals)
 const HISTORY_CAPACITY: usize = 60;
 
+/// Get localized app description (max 8 words)
+/// Supports: English, Spanish, Chinese, Portuguese, German
+fn get_localized_description() -> &'static str {
+    let lang = std::env::var("LANG")
+        .or_else(|_| std::env::var("LC_ALL"))
+        .or_else(|_| std::env::var("LC_MESSAGES"))
+        .unwrap_or_default();
+
+    let lang_code = lang.split('.').next().unwrap_or("en");
+    let lang_prefix = lang_code.split('_').next().unwrap_or("en");
+
+    match lang_prefix {
+        "es" => "Monitorea y controla temperatura CPU",
+        "zh" => "监控和控制CPU温度",
+        "pt" => "Monitore e controle temperatura CPU",
+        "de" => "CPU-Temperatur überwachen und steuern",
+        _ => "Monitor and control CPU temperature",
+    }
+}
+
 /// Temperature history buffer
 #[derive(Debug)]
 pub struct TemperatureHistory {
@@ -426,6 +446,14 @@ impl eframe::App for ThermalApp {
                         );
                     });
                 });
+                // Localized description
+                let desc_size = if is_wide { 12.0 } else { 10.0 };
+                ui.label(
+                    egui::RichText::new(get_localized_description())
+                        .size(desc_size)
+                        .color(egui::Color32::from_rgb(180, 180, 180))
+                        .italics(),
+                );
                 ui.separator();
 
                 // Temperatures and Performance - side by side on wide, stacked on narrow
